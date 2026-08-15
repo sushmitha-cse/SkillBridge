@@ -7,6 +7,7 @@ const mentorRoutes = require("./modules/mentor/mentor.routes");
 const bookingRoutes = require("./modules/booking/booking.routes");
 const reviewRoutes = require("./modules/review/review.routes");
 const availabilityRoutes = require("./modules/availability/availability.routes");
+const paymentRoutes = require("./modules/payment/payment.routes");
 
 const app = express();
 
@@ -29,5 +30,6 @@ app.use("/api/mentors", mentorRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/availability", availabilityRoutes);
+app.use("/api/payments", paymentRoutes);
 
 module.exports = app;
