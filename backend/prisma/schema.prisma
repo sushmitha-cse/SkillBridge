@@ -1,0 +1,129 @@
+// SkillBridge Database Schema
+ 
+generator client {
+  provider = "prisma-client-js"
+ }
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  MENTOR
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student Student?
+  mentor  Mentor?
+}
+
+model Student {
+  id     Int    @id @default(autoincrement())
+  userId Int    @unique
+  bio    String?
+
+  user     User      @relation(fields: [userId], references: [id])
+  bookings Booking[]
+  reviews  Review[]
+}
+
+model Mentor {
+  id         Int    @id @default(autoincrement())
+  userId     Int    @unique
+  bio        String?
+  experience Int?
+  hourlyRate Float?
+
+  user           User           @relation(fields: [userId], references: [id])
+  skills         MentorSkill[]
+  availabilities Availability[]
+  bookings       Booking[]
+  reviews        Review[]
+}
+
+model Skill {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  mentors MentorSkill[]
+}
+
+model MentorSkill {
+  id       Int @id @default(autoincrement())
+  mentorId Int
+  skillId  Int
+
+  mentor Mentor @relation(fields: [mentorId], references: [id])
+  skill  Skill  @relation(fields: [skillId], references: [id])
+
+  @@unique([mentorId, skillId])
+}
+
+model Availability {
+  id        Int      @id @default(autoincrement())
+  mentorId  Int
+  startTime DateTime
+  endTime   DateTime
+  createdAt DateTime @default(now())
+
+  mentor Mentor @relation(fields: [mentorId], references: [id])
+
+  @@index([mentorId, startTime])
+}
+
+model Booking {
+  id         Int           @id @default(autoincrement())
+  studentId  Int
+  mentorId   Int
+  startTime  DateTime
+  endTime    DateTime
+  status     BookingStatus @default(PENDING)
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id])
+  mentor  Mentor  @relation(fields: [mentorId], references: [id])
+
+  review Review?
+
+  @@index([studentId])
+  @@index([mentorId, startTime])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  bookingId Int      @unique
+  studentId Int
+  mentorId  Int
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  mentor  Mentor  @relation(fields: [mentorId], references: [id])
+
+  @@index([mentorId])
+}
