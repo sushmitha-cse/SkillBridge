@@ -7,6 +7,7 @@ import {
   User,
   XCircle,
   CreditCard,
+  Video,
 } from "lucide-react";
 import api from "../services/api";
 
@@ -288,15 +289,56 @@ function MyBookings() {
                   </div>
                 )}
 
-                {/* PAY NOW */}
-                {booking.status === "ACCEPTED" && (
-                  <button
-                    onClick={() => handlePayment(booking)}
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 font-semibold text-white transition hover:bg-indigo-700"
-                  >
-                    <CreditCard size={19} />
-                    Pay Now
-                  </button>
+                {/* PAYMENT */}
+                {booking.status === "ACCEPTED" &&
+                  !booking.meetingLink && (
+                    <button
+                      onClick={() =>
+                        handlePayment(booking)
+                      }
+                      className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 font-semibold text-white transition hover:bg-indigo-700"
+                    >
+                      <CreditCard size={19} />
+                      Pay Now
+                    </button>
+                  )}
+
+                {/* MEETING LINK */}
+                {booking.status === "ACCEPTED" && booking.meetingLink && (
+                  <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-5">
+
+                    <div className="flex items-center gap-3">
+
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                        <Video
+                          size={21}
+                          className="text-green-600"
+                        />
+                      </div>
+
+                      <div>
+                        <h3 className="font-bold text-green-800">
+                          Your Google Meet Session
+                        </h3>
+
+                        <p className="text-sm text-green-700">
+                          Your mentor has added the meeting link.
+                        </p>
+                      </div>
+
+                    </div>
+
+                    <a
+                      href={booking.meetingLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700"
+                    >
+                      <Video size={19} />
+                      Join Google Meet
+                    </a>
+
+                  </div>
                 )}
 
                 {/* CANCEL */}

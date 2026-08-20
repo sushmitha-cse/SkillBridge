@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, User, Mail, Phone, Briefcase, DollarSign } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  Phone,
+  Briefcase,
+  DollarSign,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
@@ -7,6 +16,8 @@ function MentorMyProfile() {
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
+  const [skills, setSkills] = useState([]);
+  const [selectedSkill, setSelectedSkill] = useState("");
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -16,52 +27,72 @@ function MentorMyProfile() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [addingSkill, setAddingSkill] = useState(false);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Get logged-in mentor profile
+  // Fetch mentor profile
+  const fetchProfile = async () => {
+    try {
+      const response = await api.get("/mentors/me/profile");
+
+      const data = response.data.data;
+
+      setProfile(data);
+
+      setName(data.user?.name || "");
+      setPhone(data.user?.phone || "");
+      setBio(data.bio || "");
+
+      setExperience(
+        data.experience !== null && data.experience !== undefined
+          ? String(data.experience)
+          : ""
+      );
+
+      setHourlyRate(
+        data.hourlyRate !== null && data.hourlyRate !== undefined
+          ? String(data.hourlyRate)
+          : ""
+      );
+    } catch (err) {
+      console.error("Failed to fetch mentor profile:", err);
+
+      setError(
+        err.response?.data?.message ||
+          "Failed to load mentor profile."
+      );
+    }
+  };
+
+  // Fetch all available skills
+  const fetchSkills = async () => {
+    try {
+      const response = await api.get("/skills");
+
+      setSkills(response.data.data || []);
+    } catch (err) {
+      console.error("Failed to fetch skills:", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await api.get("/mentors/me/profile");
+    const loadData = async () => {
+      setLoading(true);
 
-        const data = response.data.data;
+      await Promise.all([
+        fetchProfile(),
+        fetchSkills(),
+      ]);
 
-        setProfile(data);
-
-        setName(data.user?.name || "");
-        setPhone(data.user?.phone || "");
-        setBio(data.bio || "");
-        setExperience(
-          data.experience !== null && data.experience !== undefined
-            ? String(data.experience)
-            : ""
-        );
-        setHourlyRate(
-          data.hourlyRate !== null && data.hourlyRate !== undefined
-            ? String(data.hourlyRate)
-            : ""
-        );
-
-      } catch (err) {
-        console.error(
-          "Failed to fetch mentor profile:",
-          err
-        );
-
-        setError(
-          err.response?.data?.message ||
-            "Failed to load mentor profile."
-        );
-      } finally {
-        setLoading(false);
-      }
+      setLoading(false);
     };
 
-    fetchProfile();
+    loadData();
   }, []);
 
+  // Save mentor profile
   const handleSave = async (e) => {
     e.preventDefault();
 
@@ -71,9 +102,8 @@ function MentorMyProfile() {
     try {
       setSaving(true);
 
-      // Update mentor profile
       const response = await api.put(
-        "/mentor/profile",
+        "/mentors/profile",
         {
           bio,
           experience: experience
@@ -89,14 +119,9 @@ function MentorMyProfile() {
 
       setProfile(updatedProfile);
 
-      // Update name and phone separately
-      // because mentor profile API updates mentor fields.
-      // User name/phone belong to User model.
-
       setMessage(
         "Mentor profile updated successfully!"
       );
-
     } catch (err) {
       console.error(
         "Mentor profile update failed:",
@@ -112,6 +137,63 @@ function MentorMyProfile() {
     }
   };
 
+  // Add skill
+  const handleAddSkill = async () => {
+    if (!selectedSkill) {
+      setError("Please select a skill.");
+      return;
+    }
+
+    setMessage("");
+    setError("");
+
+    try {
+      setAddingSkill(true);
+
+      await api.post("/mentors/skills", {
+        skillId: Number(selectedSkill),
+      });
+
+      setSelectedSkill("");
+
+      await fetchProfile();
+
+      setMessage("Skill added successfully!");
+    } catch (err) {
+      console.error("Failed to add skill:", err);
+
+      setError(
+        err.response?.data?.message ||
+          "Failed to add skill."
+      );
+    } finally {
+      setAddingSkill(false);
+    }
+  };
+
+  // Remove skill
+  const handleRemoveSkill = async (skillId) => {
+    setMessage("");
+    setError("");
+
+    try {
+      await api.delete(
+        `/mentors/skills/${skillId}`
+      );
+
+      await fetchProfile();
+
+      setMessage("Skill removed successfully!");
+    } catch (err) {
+      console.error("Failed to remove skill:", err);
+
+      setError(
+        err.response?.data?.message ||
+          "Failed to remove skill."
+      );
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
@@ -124,7 +206,6 @@ function MentorMyProfile() {
 
   return (
     <div className="min-h-screen bg-slate-50 px-6 py-12">
-
       <div className="mx-auto max-w-4xl">
 
         {/* Back */}
@@ -152,7 +233,6 @@ function MentorMyProfile() {
 
           {/* Avatar */}
           <div className="flex flex-col items-center border-b border-slate-100 pb-8">
-
             <div className="flex h-24 w-24 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
               <User size={42} />
             </div>
@@ -164,7 +244,6 @@ function MentorMyProfile() {
             <p className="mt-1 font-medium text-indigo-600">
               MENTOR
             </p>
-
           </div>
 
           {/* Success */}
@@ -325,6 +404,85 @@ function MentorMyProfile() {
               </p>
             </div>
 
+            {/* Skills */}
+            <div>
+              <label className="mb-3 block text-sm font-semibold text-slate-700">
+                Skills
+              </label>
+
+              {/* Select Skill */}
+              <div className="flex gap-3">
+                <select
+                  value={selectedSkill}
+                  onChange={(e) =>
+                    setSelectedSkill(e.target.value)
+                  }
+                  className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                >
+                  <option value="">
+                    Select a skill
+                  </option>
+
+                  {skills.map((skill) => (
+                    <option
+                      key={skill.id}
+                      value={skill.id}
+                    >
+                      {skill.name}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={handleAddSkill}
+                  disabled={addingSkill}
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Plus size={18} />
+
+                  {addingSkill
+                    ? "Adding..."
+                    : "Add Skill"}
+                </button>
+              </div>
+
+              {/* Current Skills */}
+              <div className="mt-4">
+                {profile?.skills?.length > 0 ? (
+                  <div className="flex flex-wrap gap-3">
+                    {profile.skills.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-600"
+                      >
+                        <span>
+                          {item.skill?.name || "Skill"}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleRemoveSkill(
+                              item.skillId
+                            )
+                          }
+                          className="text-red-500 hover:text-red-700"
+                          title="Remove skill"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    No skills added yet.
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Save */}
             <button
               type="submit"
@@ -337,11 +495,8 @@ function MentorMyProfile() {
             </button>
 
           </form>
-
         </div>
-
       </div>
-
     </div>
   );
 }
