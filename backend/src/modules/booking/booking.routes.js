@@ -6,6 +6,7 @@ const {
   getMentorBookingsController,
   updateStatus,
   cancel,
+  addMeetingLink,
 } = require("./booking.controller");
 
 const {
@@ -18,7 +19,9 @@ const {
 
 const router = express.Router();
 
+// ===============================
 // Student routes
+// ===============================
 
 // Create a booking
 router.post(
@@ -44,7 +47,9 @@ router.patch(
   cancel
 );
 
+// ===============================
 // Mentor routes
+// ===============================
 
 // Get bookings received by me
 router.get(
@@ -60,6 +65,14 @@ router.patch(
   authenticateToken,
   requireRole("MENTOR"),
   updateStatus
+);
+
+// Add meeting link
+router.patch(
+  "/:id/meeting-link",
+  authenticateToken,
+  requireRole("MENTOR"),
+  addMeetingLink
 );
 
 module.exports = router;

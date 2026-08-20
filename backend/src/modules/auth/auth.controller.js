@@ -1,6 +1,7 @@
 const {
   registerUser,
   loginUser,
+  updateUserProfile,
 } = require("./auth.service");
 
 const {
@@ -94,8 +95,45 @@ async function getMe(req, res) {
   }
 }
 
+// Update logged-in user's profile
+async function updateProfile(req, res) {
+  try {
+    const { name, phone } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Name is required",
+      });
+    }
+
+    const user = await updateUserProfile(
+      req.user.userId,
+      {
+        name: name.trim(),
+        phone: phone?.trim() || null,
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: user,
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
 module.exports = {
   register,
   login,
   getMe,
+  updateProfile,
 };
+

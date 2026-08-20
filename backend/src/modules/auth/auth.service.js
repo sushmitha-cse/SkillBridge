@@ -3,12 +3,12 @@ const jwt = require("jsonwebtoken");
 
 const prisma = require("../../config/prisma");
 
-const JWT_SECRET = process.env.JWT_SECRET || "skillbridge_secret_key";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "skillbridge_secret_key";
 
 async function registerUser(data) {
   const { name, email, password, phone, role } = data;
 
-  // Check if user already exists
   const existingUser = await prisma.user.findUnique({
     where: {
       email,
@@ -19,10 +19,8 @@ async function registerUser(data) {
     throw new Error("User with this email already exists");
   }
 
-  // Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Create user
   const user = await prisma.user.create({
     data: {
       name,
@@ -33,7 +31,6 @@ async function registerUser(data) {
     },
   });
 
-  // Create profile based on role
   if (role === "STUDENT") {
     await prisma.student.create({
       data: {
@@ -50,14 +47,12 @@ async function registerUser(data) {
     });
   }
 
-  // Don't send password to frontend
   const { password: _, ...userWithoutPassword } = user;
 
   return userWithoutPassword;
 }
 
 async function loginUser(email, password) {
-  // Find user
   const user = await prisma.user.findUnique({
     where: {
       email,
@@ -68,7 +63,6 @@ async function loginUser(email, password) {
     throw new Error("Invalid email or password");
   }
 
-  // Compare password
   const passwordMatch = await bcrypt.compare(
     password,
     user.password
@@ -78,7 +72,6 @@ async function loginUser(email, password) {
     throw new Error("Invalid email or password");
   }
 
-  // Generate JWT token
   const token = jwt.sign(
     {
       userId: user.id,
@@ -90,7 +83,6 @@ async function loginUser(email, password) {
     }
   );
 
-  // Don't send password
   const { password: _, ...userWithoutPassword } = user;
 
   return {
@@ -99,7 +91,45 @@ async function loginUser(email, password) {
   };
 }
 
+// Update logged-in user's profile
+async function updateUserProfile(userId, data) {
+  const { name, phone } = data;
+
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!existingUser) {
+    throw new Error("User not found");
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      name,
+      phone,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return updatedUser;
+}
+
 module.exports = {
   registerUser,
   loginUser,
+  updateUserProfile,
 };
+

@@ -1,6 +1,8 @@
 const prisma = require("../../config/prisma");
 
+// ==========================================
 // Create a booking
+// ==========================================
 async function createBooking(studentId, data) {
   // Check student exists
   const student = await prisma.student.findUnique({
@@ -44,7 +46,9 @@ async function createBooking(studentId, data) {
   });
 
   if (overlappingBooking) {
-    throw new Error("Mentor is already booked for this time");
+    throw new Error(
+      "Mentor is already booked for this time"
+    );
   }
 
   const booking = await prisma.booking.create({
@@ -55,6 +59,7 @@ async function createBooking(studentId, data) {
       endTime,
       notes: data.notes,
     },
+
     include: {
       mentor: {
         include: {
@@ -67,6 +72,7 @@ async function createBooking(studentId, data) {
           },
         },
       },
+
       student: {
         include: {
           user: {
@@ -84,7 +90,9 @@ async function createBooking(studentId, data) {
   return booking;
 }
 
+// ==========================================
 // Get bookings for logged-in student
+// ==========================================
 async function getStudentBookings(userId) {
   const student = await prisma.student.findUnique({
     where: {
@@ -100,6 +108,7 @@ async function getStudentBookings(userId) {
     where: {
       studentId: student.id,
     },
+
     include: {
       mentor: {
         include: {
@@ -113,13 +122,16 @@ async function getStudentBookings(userId) {
         },
       },
     },
+
     orderBy: {
       startTime: "desc",
     },
   });
 }
 
+// ==========================================
 // Get bookings for logged-in mentor
+// ==========================================
 async function getMentorBookings(userId) {
   const mentor = await prisma.mentor.findUnique({
     where: {
@@ -135,6 +147,7 @@ async function getMentorBookings(userId) {
     where: {
       mentorId: mentor.id,
     },
+
     include: {
       student: {
         include: {
@@ -148,14 +161,21 @@ async function getMentorBookings(userId) {
         },
       },
     },
+
     orderBy: {
       startTime: "desc",
     },
   });
 }
 
+// ==========================================
 // Update booking status
-async function updateBookingStatus(userId, bookingId, status) {
+// ==========================================
+async function updateBookingStatus(
+  userId,
+  bookingId,
+  status
+) {
   const mentor = await prisma.mentor.findUnique({
     where: {
       userId,
@@ -177,13 +197,16 @@ async function updateBookingStatus(userId, bookingId, status) {
   }
 
   if (booking.mentorId !== mentor.id) {
-    throw new Error("You can only update your own bookings");
+    throw new Error(
+      "You can only update your own bookings"
+    );
   }
 
   const updatedBooking = await prisma.booking.update({
     where: {
       id: bookingId,
     },
+
     data: {
       status,
     },
@@ -192,7 +215,9 @@ async function updateBookingStatus(userId, bookingId, status) {
   return updatedBooking;
 }
 
+// ==========================================
 // Cancel booking by student
+// ==========================================
 async function cancelBooking(userId, bookingId) {
   const student = await prisma.student.findUnique({
     where: {
@@ -215,17 +240,22 @@ async function cancelBooking(userId, bookingId) {
   }
 
   if (booking.studentId !== student.id) {
-    throw new Error("You can only cancel your own bookings");
+    throw new Error(
+      "You can only cancel your own bookings"
+    );
   }
 
   if (booking.status === "COMPLETED") {
-    throw new Error("Completed booking cannot be cancelled");
+    throw new Error(
+      "Completed booking cannot be cancelled"
+    );
   }
 
   const updatedBooking = await prisma.booking.update({
     where: {
       id: bookingId,
     },
+
     data: {
       status: "CANCELLED",
     },
@@ -234,10 +264,72 @@ async function cancelBooking(userId, bookingId) {
   return updatedBooking;
 }
 
+// ==========================================
+// Mentor adds meeting link
+// ==========================================
+async function updateMeetingLink(
+  userId,
+  bookingId,
+  meetingLink
+) {
+  // Check mentor exists
+  const mentor = await prisma.mentor.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  if (!mentor) {
+    throw new Error("Mentor profile not found");
+  }
+
+  // Check booking exists
+  const booking = await prisma.booking.findUnique({
+    where: {
+      id: bookingId,
+    },
+  });
+
+  if (!booking) {
+    throw new Error("Booking not found");
+  }
+
+  // Make sure this booking belongs to this mentor
+  if (booking.mentorId !== mentor.id) {
+    throw new Error(
+      "You can only update your own bookings"
+    );
+  }
+
+  // Meeting link only for accepted bookings
+  if (booking.status !== "ACCEPTED") {
+    throw new Error(
+      "Meeting link can only be added to an accepted booking"
+    );
+  }
+
+  // Update meeting link
+  const updatedBooking = await prisma.booking.update({
+    where: {
+      id: bookingId,
+    },
+
+    data: {
+      meetingLink,
+    },
+  });
+
+  return updatedBooking;
+}
+
+// ==========================================
+// Exports
+// ==========================================
 module.exports = {
   createBooking,
   getStudentBookings,
   getMentorBookings,
   updateBookingStatus,
   cancelBooking,
+  updateMeetingLink,
 };

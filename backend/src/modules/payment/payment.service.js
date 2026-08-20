@@ -3,30 +3,52 @@ const prisma = require("../../config/prisma");
 async function createPayment(userId, data) {
   const { bookingId, amount } = data;
 
+  // Find logged-in student's profile
+  const student = await prisma.student.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  if (!student) {
+    throw new Error("Student profile not found");
+  }
+
+  // Find booking
   const booking = await prisma.booking.findUnique({
-    where: { id: bookingId },
+    where: {
+      id: bookingId,
+    },
   });
 
   if (!booking) {
     throw new Error("Booking not found");
   }
 
-  if (booking.studentId !== userId) {
+  // Check booking belongs to logged-in student
+  if (booking.studentId !== student.id) {
     throw new Error("You can only pay for your own booking");
   }
 
+  // Payment only for accepted bookings
   if (booking.status !== "ACCEPTED") {
-    throw new Error("Payment can only be made for an accepted booking");
+    throw new Error(
+      "Payment can only be made for an accepted booking"
+    );
   }
 
+  // Check existing payment
   const existingPayment = await prisma.payment.findUnique({
-    where: { bookingId },
+    where: {
+      bookingId,
+    },
   });
 
   if (existingPayment) {
     throw new Error("This booking has already been paid");
   }
 
+  // Create payment
   const payment = await prisma.payment.create({
     data: {
       bookingId,
@@ -43,10 +65,20 @@ async function createPayment(userId, data) {
 }
 
 async function getMyPayments(userId) {
+  const student = await prisma.student.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  if (!student) {
+    throw new Error("Student profile not found");
+  }
+
   return prisma.payment.findMany({
     where: {
       booking: {
-        studentId: userId,
+        studentId: student.id,
       },
     },
     include: {
@@ -73,8 +105,20 @@ async function getMyPayments(userId) {
 }
 
 async function getPaymentById(userId, paymentId) {
+  const student = await prisma.student.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  if (!student) {
+    throw new Error("Student profile not found");
+  }
+
   const payment = await prisma.payment.findUnique({
-    where: { id: paymentId },
+    where: {
+      id: paymentId,
+    },
     include: {
       booking: true,
     },
@@ -84,8 +128,10 @@ async function getPaymentById(userId, paymentId) {
     throw new Error("Payment not found");
   }
 
-  if (payment.booking.studentId !== userId) {
-    throw new Error("You do not have permission to view this payment");
+  if (payment.booking.studentId !== student.id) {
+    throw new Error(
+      "You do not have permission to view this payment"
+    );
   }
 
   return payment;

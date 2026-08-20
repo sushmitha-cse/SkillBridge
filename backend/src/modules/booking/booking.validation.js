@@ -37,7 +37,14 @@ const updateBookingStatusSchema = z.object({
   ]),
 });
 
+const updateMeetingLinkSchema = z.object({
+  meetingLink: z
+    .string()
+    .url("Invalid meeting link"),
+});
+
 module.exports = {
   createBookingSchema,
   updateBookingStatusSchema,
+  updateMeetingLinkSchema,
 };
